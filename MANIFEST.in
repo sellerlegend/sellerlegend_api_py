@@ -1,0 +1,12 @@
+include README.md
+include LICENSE
+include requirements.txt
+include requirements-dev.txt
+recursive-include sellerlegend_api *.py
+recursive-include examples *.py
+recursive-exclude tests *
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude test_config.json
+global-exclude *.log
