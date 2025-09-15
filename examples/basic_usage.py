@@ -3,42 +3,62 @@
 SellerLegend API SDK - Basic Usage Example
 
 This example demonstrates basic usage of the SellerLegend Python SDK.
+It loads configuration from .env file in the SDK root directory.
 """
 
 import os
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Add parent directory to path to import SDK
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from sellerlegend_api import SellerLegendClient, AuthenticationError
 
 def main():
-    # Configuration - in production, use environment variables
-    CLIENT_ID = os.getenv("SELLERLEGEND_CLIENT_ID", "your_client_id")
-    CLIENT_SECRET = os.getenv("SELLERLEGEND_CLIENT_SECRET", "your_client_secret")
-    BASE_URL = os.getenv("SELLERLEGEND_BASE_URL", "https://your-instance.sellerlegend.com")
+    # Load configuration from .env file
+    env_path = Path(__file__).parent.parent / '.env'
+    load_dotenv(env_path)
     
-    # Initialize client
-    client = SellerLegendClient(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        base_url=BASE_URL
-    )
+    # Get configuration from environment variables
+    CLIENT_ID = os.getenv("SELLERLEGEND_CLIENT_ID")
+    CLIENT_SECRET = os.getenv("SELLERLEGEND_CLIENT_SECRET")
+    BASE_URL = os.getenv("SELLERLEGEND_BASE_URL", "https://app.sellerlegend.com")
+    ACCESS_TOKEN = os.getenv("SELLERLEGEND_ACCESS_TOKEN")
+    
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("Error: Missing SELLERLEGEND_CLIENT_ID or SELLERLEGEND_CLIENT_SECRET")
+        print("Please run 'python setup_test_config.py' to configure credentials")
+        return 1
+    
+    # Initialize client - use access token if available, otherwise use OAuth
+    if ACCESS_TOKEN:
+        print("Using existing access token from .env")
+        client = SellerLegendClient(
+            access_token=ACCESS_TOKEN,
+            base_url=BASE_URL
+        )
+    else:
+        print("No access token found, will use OAuth2 Client Credentials flow")
+        client = SellerLegendClient(
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            base_url=BASE_URL
+        )
     
     try:
-        # Authenticate using OAuth2 Client Credentials flow
-        # This is recommended for server-to-server integrations
-        print("Authenticating with OAuth2 Client Credentials...")
-        auth_result = client.authenticate_client_credentials()
-        print(f"Authentication successful! Token expires in {auth_result.get('expires_in', 'N/A')} seconds")
+        # Authenticate if we don't have an access token
+        if not ACCESS_TOKEN:
+            print("Authenticating with OAuth2 Client Credentials...")
+            auth_result = client.authenticate_client_credentials()
+            print(f"Authentication successful! Token expires in {auth_result.get('expires_in', 'N/A')} seconds")
         
-        # Alternative: Use authorization code flow for user authentication
-        # auth_url, state = client.get_authorization_url()
-        # # Redirect user to auth_url...
-        # # After user authorizes, exchange code for token:
-        # # auth_result = client.authenticate_with_code(code)
-        
-        # Check service status
-        print("\nChecking service status...")
-        status = client.get_service_status()
-        print(f"Service status: {status['status']}")
+        # Check if authenticated
+        if not client.is_authenticated():
+            print("Error: Not authenticated. Please check your credentials.")
+            return 1
         
         # Get user information
         print("\nGetting user information...")

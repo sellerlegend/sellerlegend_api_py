@@ -44,30 +44,41 @@ Integration tests make actual API calls and require valid credentials.
 
 #### Configuration
 
-You need to provide API credentials in one of two ways:
+You need to provide API credentials via a `.env` file in the SDK root directory.
 
-**Option 1: Environment Variables**
+**Option 1: Interactive Setup (Recommended)**
 ```bash
-export SELLERLEGEND_TEST_BASE_URL='https://app.sellerlegend.com'
-export SELLERLEGEND_TEST_CLIENT_ID='your_oauth_client_id'
-export SELLERLEGEND_TEST_CLIENT_SECRET='your_oauth_client_secret'
-
-# Optional: Test data
-export SELLERLEGEND_TEST_ACCOUNT_ID='1'
-export SELLERLEGEND_TEST_MARKETPLACE_ID='ATVPDKIKX0DER'
-export SELLERLEGEND_TEST_SELLER_ID='A1234567890'
-export SELLERLEGEND_TEST_SKU='TEST-SKU-001'
-export SELLERLEGEND_TEST_ASIN='B000TEST01'
+# Run from the SDK root directory
+python setup_test_config.py
 ```
 
-**Option 2: Configuration File**
+This will:
+1. Prompt you for OAuth Client ID and Secret
+2. Open your browser for OAuth authorization
+3. Automatically capture the authorization code
+4. Exchange it for access and refresh tokens
+5. Save everything to `.env` file
+
+**Option 2: Manual Configuration**
 ```bash
-# Copy the example config
-cp tests/integration/test_config.json.example tests/integration/test_config.json
+# Copy the example file
+cp .env.example .env
 
 # Edit with your credentials
-vim tests/integration/test_config.json
+vim .env
 ```
+
+Example `.env` file:
+```env
+SELLERLEGEND_BASE_URL=https://app.sellerlegend.com
+SELLERLEGEND_CLIENT_ID=your_oauth_client_id
+SELLERLEGEND_CLIENT_SECRET=your_oauth_client_secret
+SELLERLEGEND_ACCESS_TOKEN=your_access_token
+SELLERLEGEND_REFRESH_TOKEN=your_refresh_token
+```
+
+**Option 3: Environment Variables**
+You can also set these as system environment variables if you prefer not to use a `.env` file.
 
 #### Running Integration Tests
 

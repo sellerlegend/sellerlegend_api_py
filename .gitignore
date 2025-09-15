@@ -70,7 +70,12 @@ Thumbs.db
 *.gz
 *.csv
 
-# Test configuration (contains sensitive credentials)
+# Environment variables (contains sensitive credentials)
+.env
+.env.local
+.env.*.local
+
+# Test configuration (legacy - for backward compatibility)
 tests/integration/test_config.json
 tests/integration/test_config.*.json
 

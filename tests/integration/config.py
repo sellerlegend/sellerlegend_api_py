@@ -1,20 +1,25 @@
 """
 Configuration for integration tests
 
-Set up your test credentials here or via environment variables.
+Set up your test credentials via .env file or environment variables.
 """
 
 import os
-import json
 from pathlib import Path
 from typing import Optional, Dict, Any
+from dotenv import load_dotenv
 
 
 class TestConfig:
     """Configuration for integration tests."""
     
     def __init__(self):
-        """Initialize test configuration from environment or config file."""
+        """Initialize test configuration from .env file or environment variables."""
+        # Load .env file from SDK root
+        env_path = Path(__file__).parent.parent.parent / '.env'
+        load_dotenv(env_path)
+        
+        # Initialize all configuration values
         self.base_url = None
         self.client_id = None
         self.client_secret = None
@@ -27,44 +32,24 @@ class TestConfig:
         self.test_sku = None
         self.test_asin = None
         
-        # Try to load from environment variables first
-        # self._load_from_env()
-        
-        # If not found in env, try to load from config file
-        if not self.is_configured():
-            self._load_from_file()
+        # Load from environment (will include .env values)
+        self._load_from_env()
     
     def _load_from_env(self):
         """Load configuration from environment variables."""
-        self.base_url = os.getenv('SELLERLEGEND_TEST_BASE_URL', 'https://app.sellerlegend.com')
-        self.client_id = os.getenv('SELLERLEGEND_TEST_CLIENT_ID')
-        self.client_secret = os.getenv('SELLERLEGEND_TEST_CLIENT_SECRET')
-        self.access_token = os.getenv('SELLERLEGEND_TEST_ACCESS_TOKEN')
-        self.refresh_token = os.getenv('SELLERLEGEND_TEST_REFRESH_TOKEN')
-        self.test_authorization_code = os.getenv('SELLERLEGEND_TEST_AUTH_CODE')
-        self.test_account_id = os.getenv('SELLERLEGEND_TEST_ACCOUNT_ID')
-        self.test_marketplace_id = os.getenv('SELLERLEGEND_TEST_MARKETPLACE_ID', 'ATVPDKIKX0DER')
-        self.test_seller_id = os.getenv('SELLERLEGEND_TEST_SELLER_ID')
-        self.test_sku = os.getenv('SELLERLEGEND_TEST_SKU')
-        self.test_asin = os.getenv('SELLERLEGEND_TEST_ASIN')
+        # Support both old long names and new short names for backward compatibility
+        self.base_url = os.getenv('SELLERLEGEND_BASE_URL') or os.getenv('SELLERLEGEND_TEST_BASE_URL') or 'https://app.sellerlegend.com'
+        self.client_id = os.getenv('SELLERLEGEND_CLIENT_ID') or os.getenv('SELLERLEGEND_TEST_CLIENT_ID')
+        self.client_secret = os.getenv('SELLERLEGEND_CLIENT_SECRET') or os.getenv('SELLERLEGEND_TEST_CLIENT_SECRET')
+        self.access_token = os.getenv('SELLERLEGEND_ACCESS_TOKEN') or os.getenv('SELLERLEGEND_TEST_ACCESS_TOKEN')
+        self.refresh_token = os.getenv('SELLERLEGEND_REFRESH_TOKEN') or os.getenv('SELLERLEGEND_TEST_REFRESH_TOKEN')
+        self.test_authorization_code = os.getenv('SELLERLEGEND_AUTH_CODE') or os.getenv('SELLERLEGEND_TEST_AUTH_CODE')
+        self.test_account_id = os.getenv('SELLERLEGEND_ACCOUNT_ID') or os.getenv('SELLERLEGEND_TEST_ACCOUNT_ID')
+        self.test_marketplace_id = os.getenv('SELLERLEGEND_MARKETPLACE_ID') or os.getenv('SELLERLEGEND_TEST_MARKETPLACE_ID') or 'ATVPDKIKX0DER'
+        self.test_seller_id = os.getenv('SELLERLEGEND_SELLER_ID') or os.getenv('SELLERLEGEND_TEST_SELLER_ID')
+        self.test_sku = os.getenv('SELLERLEGEND_SKU') or os.getenv('SELLERLEGEND_TEST_SKU')
+        self.test_asin = os.getenv('SELLERLEGEND_ASIN') or os.getenv('SELLERLEGEND_TEST_ASIN')
     
-    def _load_from_file(self):
-        """Load configuration from test_config.json file."""
-        config_file = Path(__file__).parent / 'test_config.json'
-        if config_file.exists():
-            with open(config_file, 'r') as f:
-                config = json.load(f)
-                self.base_url = config.get('base_url', self.base_url)
-                self.client_id = config.get('client_id', self.client_id)
-                self.client_secret = config.get('client_secret', self.client_secret)
-                self.access_token = config.get('access_token', self.access_token)
-                self.refresh_token = config.get('refresh_token', self.refresh_token)
-                self.test_authorization_code = config.get('test_authorization_code', self.test_authorization_code)
-                self.test_account_id = config.get('test_account_id', self.test_account_id)
-                self.test_marketplace_id = config.get('test_marketplace_id', self.test_marketplace_id)
-                self.test_seller_id = config.get('test_seller_id', self.test_seller_id)
-                self.test_sku = config.get('test_sku', self.test_sku)
-                self.test_asin = config.get('test_asin', self.test_asin)
     
     def is_configured(self) -> bool:
         """Check if minimum required configuration is present."""
@@ -138,47 +123,31 @@ class TestConfig:
         )
     
     def ensure_configured(self):
-        """Ensure configuration exists and tokens are valid, creating/refreshing as needed."""
-        from .setup_config_improved import setup_or_refresh_config
-        
-        # If not configured, run setup
+        """Ensure configuration exists and tokens are valid."""
+        # If not configured, provide helpful message
         if not self.is_configured():
-            print("\nConfiguration not found or incomplete. Starting setup...")
-            config = setup_or_refresh_config()
-            
-            # Update our config with the new values
-            self.base_url = config.get('base_url', self.base_url)
-            self.client_id = config.get('client_id', self.client_id)
-            self.client_secret = config.get('client_secret', self.client_secret)
-            self.access_token = config.get('access_token', self.access_token)
-            self.refresh_token = config.get('refresh_token', self.refresh_token)
-            self.test_authorization_code = config.get('test_authorization_code', self.test_authorization_code)
-            self.test_account_id = config.get('test_account_id', self.test_account_id)
-            self.test_marketplace_id = config.get('test_marketplace_id', self.test_marketplace_id)
-            self.test_seller_id = config.get('test_seller_id', self.test_seller_id)
-            self.test_sku = config.get('test_sku', self.test_sku)
-            self.test_asin = config.get('test_asin', self.test_asin)
-        else:
-            # Configuration exists, but let's verify tokens are still valid
-            from sellerlegend_api import SellerLegendClient
-            from sellerlegend_api.exceptions import AuthenticationError
-            
-            if self.access_token:
-                try:
-                    client = SellerLegendClient(
-                        access_token=self.access_token,
-                        base_url=self.base_url
-                    )
-                    # Quick test to see if token is valid
-                    client.user.get_me()
-                except AuthenticationError:
-                    # Token is expired, try to refresh or re-authenticate
-                    print("\nAccess token expired. Refreshing...")
-                    config = setup_or_refresh_config()
-                    
-                    # Update tokens
-                    self.access_token = config.get('access_token', self.access_token)
-                    self.refresh_token = config.get('refresh_token', self.refresh_token)
+            import pytest
+            pytest.skip(
+                "Integration tests not configured. "
+                "Run 'python setup_test_config.py' to create .env file and setup OAuth."
+            )
+        
+        # Configuration exists, but let's verify tokens are still valid
+        from sellerlegend_api import SellerLegendClient
+        from sellerlegend_api.exceptions import AuthenticationError
+        
+        if self.access_token:
+            try:
+                client = SellerLegendClient(
+                    access_token=self.access_token,
+                    base_url=self.base_url
+                )
+                # Quick test to see if token is valid
+                client.user.get_me()
+            except AuthenticationError:
+                # Token is expired, need manual refresh
+                print("\nWarning: Access token may be expired. Tests might fail.")
+                print("Please run 'python setup_test_config.py' to refresh tokens")
     
     def skip_if_not_configured(self):
         """Skip test if not properly configured."""
