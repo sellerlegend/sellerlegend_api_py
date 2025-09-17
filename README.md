@@ -28,183 +28,395 @@ pip install -e .
 
 ## Quick Start
 
-### OAuth2 Client Credentials Flow (Recommended for Server-to-Server)
+### Step 1: Obtain API Credentials
+
+Before using the API, you need to register your application in SellerLegend:
+
+1. Log in to your SellerLegend account
+2. Navigate to **Admin → Developers**
+3. Click on **"Create New Client"**
+4. Fill in your application details:
+   - **Name:** Your application name
+   - **Redirect URL:** Your OAuth callback URL (e.g., `https://yourapp.com/callback`)
+5. Click **"Create"** to generate your credentials
+
+**Important:** Save your **Client ID** and **Client Secret** immediately. The Client Secret will only be shown once for security reasons.
+
+### Step 2: OAuth2 Authorization Code Flow (The ONLY Method for Full API Access)
 
 ```python
 from sellerlegend_api import SellerLegendClient
+import time
 
-# Initialize the client for OAuth2 Client Credentials flow
+# Initialize the client with credentials from Step 1
 client = SellerLegendClient(
-    client_id="your_oauth_client_id",
-    client_secret="your_oauth_client_secret",
-    base_url="https://your-instance.sellerlegend.com"
+    client_id="your_oauth_client_id",      # From Admin → Developers
+    client_secret="your_oauth_client_secret",  # From Admin → Developers
+    base_url="https://app.sellerlegend.com"
 )
 
-# Authenticate using client credentials
-token_info = client.authenticate_client_credentials()
-print(f"Access token obtained, expires in: {token_info['expires_in']} seconds")
-
-# Now you can access API resources
-user_info = client.user.get_me()
-print(f"API Client: {user_info['user']['name']}")
-
-# Get accounts accessible to this OAuth client
-accounts = client.user.get_accounts()
-for account in accounts['accounts']:
-    print(f"Account: {account['account_title']} - {account['country_code']}")
-```
-
-### OAuth2 Authorization Code Flow (For User-Specific Access)
-
-```python
-from sellerlegend_api import SellerLegendClient
-
-# Initialize the client
-client = SellerLegendClient(
-    client_id="your_oauth_client_id",
-    client_secret="your_oauth_client_secret",
-    base_url="https://your-instance.sellerlegend.com"
-)
-
-# Get authorization URL and redirect user to authorize
+# Step 1: Get authorization URL
 auth_url, state = client.get_authorization_url()
-# ... redirect user to auth_url ...
-# ... user authorizes and you get a code ...
+print(f"Please visit: {auth_url}")
+print(f"State (save for verification): {state}")
 
-# Exchange code for token
+# Step 2: User authorizes and you receive a code at your callback URL
+code = input("Enter the authorization code: ")
+
+# Step 3: Exchange code for tokens
 token_info = client.authenticate_with_code(code, state)
-print(f"Authenticated as user, token expires in: {token_info['expires_in']} seconds")
 
-# Access user-specific data
-user_info = client.user.get_me()
-print(f"Logged in as: {user_info['user']['name']}")
+# Step 4: CRITICAL - Store BOTH tokens in your database
+store_in_database(
+    access_token=token_info['access_token'],
+    refresh_token=token_info['refresh_token'],  # MUST store this!
+    expires_at=time.time() + token_info['expires_in']
+)
+
+print(f"Authentication successful! Token expires in {token_info['expires_in']} seconds")
 ```
 
 ## Authentication
 
-The SDK supports OAuth2 authentication with Laravel Passport. Choose the appropriate flow for your use case:
+⚠️ **CRITICAL INFORMATION**:
+- **Only the OAuth 2.0 Authorization Code flow provides full API access**
+- Personal Access Tokens are **NOT** supported
+- Direct access tokens are **NOT** supported
+- Password Grant is **NOT** supported
+- Client Credentials Grant only provides access to service status endpoint
 
-### 1. Authorization Code Flow (Recommended for Web Apps)
+### 1. OAuth 2.0 Authorization Code Flow - Complete Implementation
 
-Best for web applications where users need to explicitly grant permissions:
+This is the **ONLY** way to get full API access. You MUST:
+1. Implement the complete OAuth flow
+2. Store tokens securely in a database
+3. Handle token refresh properly
+4. **Update refresh tokens after each refresh** (old ones become invalid)
 
-```python
-# Step 1: Get authorization URL
-auth_url, state = client.get_authorization_url()
-
-# Step 2: Redirect user to auth_url
-# User logs in to SellerLegend and approves your app
-
-# Step 3: Handle callback with authorization code
-code = request.args.get('code')  # From callback URL
-state = request.args.get('state')  # For CSRF validation
-
-# Step 4: Exchange code for access token
-token_info = client.authenticate_with_code(code, state)
-print(f"Access token obtained, expires in: {token_info['expires_in']} seconds")
-```
-
-**When to use:**
-- Web applications (SaaS, dashboards)
-- Applications requiring user consent
-- Third-party integrations
-- When you need user consent without handling credentials
-
-### 2. Client Credentials Grant (Recommended for Automation)
-
-Best for automated scripts, background jobs, and server-to-server integrations:
+#### Step-by-Step Implementation:
 
 ```python
-# No user credentials needed - uses only OAuth client ID and secret
-token_info = client.authenticate_client_credentials()
-
-# The client now has access based on the OAuth client's configured permissions
-print(f"Access token obtained, expires in: {token_info['expires_in']} seconds")
-```
-
-**When to use:** 
-- Automated reporting scripts
-- Data synchronization services
-- Background processing jobs
-- API integrations that don't need user context
-
-### 3. Direct Access Token (When Available)
-
-If you already have an access token from another authentication method:
-
-```python
-client = SellerLegendClient(
-    base_url="https://your-instance.sellerlegend.com",
-    access_token="existing_bearer_token_here"
-)
-
-# No need to authenticate - ready to use
-user_info = client.user.get_me()
-```
-
-**When to use:**
-- When you have a token from another authentication system
-- For testing with pre-generated tokens
-- When tokens are managed externally
-
-### Token Management
-
-```python
-# Check authentication status
-if client.is_authenticated():
-    print("Client is authenticated")
-
-# Get current token information
-token_info = client.get_token_info()
-print(f"Token expires at: {token_info['expires_at']}")
-print(f"Access token: {token_info['access_token'][:20]}...")  # First 20 chars only
-
-# Token is automatically refreshed when expired
-# You can also manually refresh if needed
-new_token = client.refresh_token()
-print(f"Token refreshed, new expiry: {new_token['expires_in']} seconds")
-```
-
-### Using Existing Tokens
-
-If you already have an access token from another source:
-
-```python
+import time
+import sqlite3
 from sellerlegend_api import SellerLegendClient
 
-# Initialize with existing token
-client = SellerLegendClient(
-    base_url="https://your-instance.sellerlegend.com",
-    access_token="existing_bearer_token_here"
-)
+class SellerLegendTokenManager:
+    """Complete token management with database storage."""
 
-# No need to call authenticate - ready to use immediately
-user_info = client.user.get_me()
+    def __init__(self, client_id, client_secret, db_path="tokens.db"):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.base_url = "https://app.sellerlegend.com"
+        self.db_path = db_path
+        self.init_database()
+
+    def init_database(self):
+        """Create tokens table if it doesn't exist."""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS oauth_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                access_token TEXT NOT NULL UNIQUE,
+                refresh_token TEXT NOT NULL,
+                expires_at INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+    def complete_oauth_flow(self, redirect_uri="http://localhost:5001/callback"):
+        """Complete OAuth authorization flow."""
+        # Initialize client
+        client = SellerLegendClient(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            base_url=self.base_url
+        )
+
+        # Step 1: Get authorization URL
+        auth_url, state = client.get_authorization_url(redirect_uri)
+
+        print("=== OAuth Authorization Required ===")
+        print(f"1. Visit this URL: {auth_url}")
+        print(f"2. Log in and authorize the application")
+        print(f"3. You'll be redirected to: {redirect_uri}?code=AUTH_CODE&state={state}")
+        print("")
+
+        # Step 2: Get authorization code from user
+        code = input("Enter the authorization code from the redirect URL: ")
+
+        # Step 3: Exchange code for tokens
+        try:
+            token_info = client.authenticate_with_code(code, state)
+
+            # Step 4: Store tokens in database
+            self.store_tokens(token_info)
+
+            print("✅ Authentication successful!")
+            print(f"Access token expires in: {token_info['expires_in']} seconds")
+            print(f"Refresh token expires in: 30 days")
+
+            return token_info
+
+        except Exception as e:
+            print(f"❌ Authentication failed: {e}")
+            raise
+
+    def store_tokens(self, token_info):
+        """
+        Store tokens in database.
+        CRITICAL: Must store BOTH access and refresh tokens!
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        expires_at = int(time.time() + token_info['expires_in'])
+        created_at = int(time.time())
+
+        # Delete old tokens (optional, for single-user apps)
+        cursor.execute("DELETE FROM oauth_tokens")
+
+        # Insert new tokens
+        cursor.execute("""
+            INSERT INTO oauth_tokens
+            (access_token, refresh_token, expires_at, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (
+            token_info['access_token'],
+            token_info['refresh_token'],  # CRITICAL: Must store refresh token!
+            expires_at,
+            created_at
+        ))
+
+        conn.commit()
+        conn.close()
+
+        print("✅ Tokens stored securely in database")
+
+    def get_valid_client(self):
+        """
+        Get an authenticated client, refreshing token if needed.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Get most recent tokens
+        cursor.execute("""
+            SELECT * FROM oauth_tokens
+            ORDER BY created_at DESC
+            LIMIT 1
+        """)
+
+        tokens = cursor.fetchone()
+        conn.close()
+
+        if not tokens:
+            print("❌ No tokens found. Please run complete_oauth_flow() first.")
+            raise Exception("Not authenticated")
+
+        current_time = int(time.time())
+
+        # Check if token needs refresh (5 minute buffer)
+        if tokens['expires_at'] <= current_time + 300:
+            print("⚠️ Token expired or expiring soon, refreshing...")
+            return self.refresh_and_get_client(tokens['refresh_token'])
+
+        # Return client with valid token
+        return SellerLegendClient(
+            base_url=self.base_url,
+            access_token=tokens['access_token']
+        )
+
+    def refresh_and_get_client(self, refresh_token):
+        """
+        Refresh tokens and return authenticated client.
+
+        ⚠️ CRITICAL: When refreshing, you get a NEW refresh token!
+        The old refresh token becomes INVALID immediately!
+        """
+        client = SellerLegendClient(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            base_url=self.base_url
+        )
+
+        try:
+            # Get new tokens
+            new_tokens = client.refresh_access_token(refresh_token)
+
+            # CRITICAL: Store the NEW tokens (including refresh token!)
+            self.store_tokens(new_tokens)
+
+            print("✅ Tokens refreshed successfully")
+            print("⚠️ WARNING: Old refresh token is now INVALID!")
+
+            # Return client with new access token
+            return SellerLegendClient(
+                base_url=self.base_url,
+                access_token=new_tokens['access_token']
+            )
+
+        except Exception as e:
+            print(f"❌ Token refresh failed: {e}")
+            print("User must re-authenticate with OAuth flow")
+            raise
+
+# Usage Example
+if __name__ == "__main__":
+    # Initialize token manager
+    manager = SellerLegendTokenManager(
+        client_id="YOUR_CLIENT_ID",
+        client_secret="YOUR_CLIENT_SECRET"
+    )
+
+    # First time: Complete OAuth flow
+    # Uncomment this line for initial setup:
+    # manager.complete_oauth_flow()
+
+    # Subsequent uses: Get authenticated client
+    try:
+        client = manager.get_valid_client()
+
+        # Now you can make API calls
+        user = client.user.get_me()
+        print(f"Authenticated as: {user['user']['name']}")
+
+        # Get accounts
+        accounts = client.user.get_accounts()
+        for account in accounts['accounts']:
+            print(f"Account: {account['account_title']}")
+
+        # Get sales data
+        orders = client.sales.get_orders(
+            per_page=500,
+            start_date="2024-01-01",
+            end_date="2024-01-31"
+        )
+        print(f"Found {len(orders.get('data', []))} orders")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        print("Please run complete_oauth_flow() to authenticate")
 ```
 
-### Environment Variables
+### 2. Token Refresh - Critical Information
 
-For security, store credentials in environment variables:
+⚠️ **CRITICAL POINTS ABOUT TOKEN REFRESH**:
+
+1. **NEW Refresh Token**: When you refresh an access token, you receive a NEW refresh token
+2. **Old Token Invalid**: The old refresh token becomes invalid IMMEDIATELY
+3. **Must Update Storage**: You MUST update your stored refresh token every time
+4. **Atomic Updates**: Use database transactions to prevent token loss
+5. **Handle Failures**: If refresh fails, user must re-authenticate
 
 ```python
-import os
-from sellerlegend_api import SellerLegendClient
+def refresh_tokens_safely(old_refresh_token, client_id, client_secret):
+    """
+    Safe token refresh with proper error handling.
+    """
+    client = SellerLegendClient(
+        client_id=client_id,
+        client_secret=client_secret,
+        base_url="https://app.sellerlegend.com"
+    )
 
-client = SellerLegendClient(
-    client_id=os.getenv('SELLERLEGEND_CLIENT_ID'),
-    client_secret=os.getenv('SELLERLEGEND_CLIENT_SECRET'),
-    base_url=os.getenv('SELLERLEGEND_API_URL', 'https://api.sellerlegend.com')
+    try:
+        # Refresh tokens
+        new_tokens = client.refresh_access_token(old_refresh_token)
+
+        # CRITICAL: You now have NEW tokens
+        # The old refresh token is INVALID!
+
+        # Store BOTH new tokens immediately
+        with database.transaction():  # Use transaction for safety
+            database.execute("""
+                UPDATE oauth_tokens SET
+                    access_token = ?,
+                    refresh_token = ?,  # NEW refresh token!
+                    expires_at = ?,
+                    updated_at = ?
+                WHERE refresh_token = ?
+            """, [
+                new_tokens['access_token'],
+                new_tokens['refresh_token'],  # Must store the NEW one!
+                time.time() + new_tokens['expires_in'],
+                time.time(),
+                old_refresh_token  # Match on old token
+            ])
+
+        print("✅ Tokens refreshed and stored")
+        print("⚠️ Old refresh token is now invalid!")
+
+        return new_tokens
+
+    except Exception as e:
+        # Refresh failed - tokens may be invalid
+        print(f"❌ Token refresh failed: {e}")
+
+        # Mark tokens as invalid in database
+        database.execute(
+            "UPDATE oauth_tokens SET expires_at = 0 WHERE refresh_token = ?",
+            [old_refresh_token]
+        )
+
+        # User must re-authenticate
+        raise Exception("Token refresh failed. User must re-authenticate.")
+```
+
+### 3. Common Pitfalls and Solutions
+
+#### Pitfall 1: Not Storing Refresh Token
+```python
+# ❌ WRONG - Only storing access token
+database.save(access_token=token_info['access_token'])
+
+# ✅ CORRECT - Store both tokens
+database.save(
+    access_token=token_info['access_token'],
+    refresh_token=token_info['refresh_token']
 )
+```
 
-# Use client credentials flow for automated scripts
-client.authenticate_client_credentials()
+#### Pitfall 2: Not Updating Refresh Token After Refresh
+```python
+# ❌ WRONG - Not updating refresh token
+new_tokens = client.refresh_access_token(old_refresh_token)
+database.update(access_token=new_tokens['access_token'])  # Missing refresh token!
+
+# ✅ CORRECT - Update both tokens
+new_tokens = client.refresh_access_token(old_refresh_token)
+database.update(
+    access_token=new_tokens['access_token'],
+    refresh_token=new_tokens['refresh_token']  # Must update this too!
+)
+```
+
+#### Pitfall 3: Using Expired Refresh Token
+```python
+# ❌ WRONG - Using old refresh token after refresh
+tokens1 = client.refresh_access_token(refresh_token)
+# ... later ...
+tokens2 = client.refresh_access_token(refresh_token)  # Will fail!
+
+# ✅ CORRECT - Use the new refresh token
+tokens1 = client.refresh_access_token(old_refresh_token)
+# ... later ...
+tokens2 = client.refresh_access_token(tokens1['refresh_token'])  # Use new token
 ```
 
 ## API Usage Examples
 
+Once you have a valid authenticated client, you can access all API endpoints:
+
 ### Sales Data
 
 ```python
+# Get authenticated client
+client = token_manager.get_valid_client()
+
 # Get recent orders
 orders = client.sales.get_orders(
     per_page=500,
@@ -212,13 +424,11 @@ orders = client.sales.get_orders(
     end_date="2023-12-31"
 )
 
-# Get sales statistics by product
+# Get sales statistics
 stats = client.sales.get_statistics_dashboard(
     view_by="product",
     group_by="sku",
     per_page=1000,
-    start_date="2023-12-01",
-    end_date="2023-12-31",
     currency="USD"
 )
 
@@ -382,46 +592,30 @@ from sellerlegend_api import (
     ServerError
 )
 
-client = SellerLegendClient(client_id="...", client_secret="...", base_url="...")
-
 try:
-    client.authenticate_client_credentials()
+    # Get authenticated client
+    client = token_manager.get_valid_client()
+
+    # Make API calls
     orders = client.sales.get_orders(per_page=500)
-    
+
 except AuthenticationError as e:
     print(f"Authentication failed: {e.message}")
-    
+    # Token may be expired, try refresh or re-authenticate
+
 except ValidationError as e:
     print(f"Validation error: {e.message}")
     print(f"Response data: {e.response_data}")
-    
+
 except NotFoundError as e:
     print(f"Resource not found: {e.message}")
-    
+
 except RateLimitError as e:
     print(f"Rate limit exceeded: {e.message}")
-    
+    # Implement backoff strategy
+
 except ServerError as e:
     print(f"Server error: {e.message}")
-```
-
-## Context Manager Usage
-
-```python
-# Use as context manager for automatic cleanup
-with SellerLegendClient(
-    client_id="your_client_id",
-    client_secret="your_client_secret", 
-    base_url="https://your-instance.sellerlegend.com"
-) as client:
-    
-    client.authenticate_client_credentials()
-    
-    # Your API calls here
-    user_info = client.user.get_me()
-    orders = client.sales.get_orders(per_page=500)
-    
-# Session is automatically closed when exiting the context
 ```
 
 ## Configuration
@@ -432,21 +626,10 @@ with SellerLegendClient(
 client = SellerLegendClient(
     client_id="your_client_id",
     client_secret="your_client_secret",
-    base_url="https://your-instance.sellerlegend.com",
+    base_url="https://app.sellerlegend.com",
     timeout=60,          # 60 second timeout
     max_retries=5,       # Retry up to 5 times
     backoff_factor=0.5   # Backoff factor for retries
-)
-```
-
-### Custom Headers
-
-```python
-# Service status check with custom headers
-status = client._base_client._make_request(
-    method="GET",
-    endpoint="service-status",
-    headers={"X-Custom-Header": "value"}
 )
 ```
 
@@ -468,13 +651,54 @@ The SDK provides access to the following SellerLegend API resources:
 
 The SDK includes built-in retry logic for rate-limited requests. When a rate limit is encountered (HTTP 429), the client will automatically retry with exponential backoff.
 
-## Contributing
+## Important Security Notes
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+1. **Never commit credentials**: Keep your `client_id` and `client_secret` secure
+2. **Use environment variables**: Store sensitive data in `.env` files
+3. **Secure token storage**: Always store tokens in a database, never in files or cookies
+4. **Use HTTPS**: Always use HTTPS for callbacks and API calls
+5. **Validate state parameter**: Always validate the state parameter to prevent CSRF attacks
+
+## Database Schema Example
+
+```sql
+-- Recommended schema for token storage
+CREATE TABLE oauth_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,  -- Your application's user ID
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER,
+    UNIQUE(access_token)
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_user_id ON oauth_tokens(user_id);
+CREATE INDEX idx_expires_at ON oauth_tokens(expires_at);
+```
+
+## Troubleshooting
+
+### "Unauthenticated" Error
+- Token may be expired - check `expires_at` timestamp
+- Try refreshing the token using the refresh token
+- If refresh fails, user must re-authenticate
+
+### "Access Denied" Error
+- User may not have API access enabled
+- Check account permissions in SellerLegend
+
+### Token Refresh Fails
+- Refresh token may be expired (30 days)
+- Refresh token may have been used already (they're single-use)
+- User must complete OAuth flow again
+
+### Rate Limiting
+- Implement exponential backoff
+- Cache frequently accessed data
+- Use batch endpoints where available
 
 ## Support
 
