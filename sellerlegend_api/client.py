@@ -274,31 +274,6 @@ class SellerLegendClient:
             per_page=per_page
         )
     
-    def create_and_download_report(
-        self,
-        product_sku: Optional[str] = None,
-        dps_date: Optional[str] = None,
-        last_updated_date: Optional[str] = None,
-        timeout: int = 300
-    ) -> bytes:
-        """
-        Convenience method to create and download a report.
-        
-        Args:
-            product_sku: Product SKU to generate report for
-            dps_date: DPS date in YYYY-MM-DD format
-            last_updated_date: Last updated date in YYYY-MM-DD format
-            timeout: Maximum time to wait for completion
-            
-        Returns:
-            Binary report data (gzipped CSV)
-        """
-        return self.reports.create_and_download_report(
-            product_sku=product_sku,
-            dps_date=dps_date,
-            last_updated_date=last_updated_date,
-            timeout=timeout
-        )
     
     def __enter__(self):
         """Context manager entry."""

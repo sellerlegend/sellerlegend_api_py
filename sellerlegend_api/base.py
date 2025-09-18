@@ -166,7 +166,7 @@ class BaseClient:
         url = self._build_url(endpoint)
         
         # Prepare headers with authentication
-        request_headers = {}
+        request_headers = {'SellerLegend-Api-Version': 'v2'}
         if headers:
             request_headers.update(headers)
         

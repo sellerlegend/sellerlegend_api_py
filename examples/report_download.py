@@ -35,62 +35,71 @@ def main():
         return 1
     
     # Initialize client - use access token if available, otherwise use OAuth
-    if ACCESS_TOKEN:
-        print("Using existing access token from .env")
-        client = SellerLegendClient(
-            access_token=ACCESS_TOKEN,
-            base_url=BASE_URL
-        )
-    else:
-        print("No access token found, will use OAuth2 Client Credentials flow")
-        client = SellerLegendClient(
-            client_id=CLIENT_ID,
-            client_secret=CLIENT_SECRET,
-            base_url=BASE_URL
-        )
+    client = SellerLegendClient(
+        access_token=ACCESS_TOKEN,
+        base_url=BASE_URL
+    )
     
     try:
-        # Authenticate if we don't have an access token
-        if not ACCESS_TOKEN:
-            print("Authenticating with OAuth2 Client Credentials...")
-            auth_result = client.authenticate_client_credentials()
-            print(f"Authentication successful! Token expires in {auth_result.get('expires_in', 'N/A')} seconds")
-        
-        # Check if authenticated
-        if not client.is_authenticated():
-            print("Error: Not authenticated. Please check your credentials.")
-            return 1
-        
-        print("Authentication successful!")
-        
         # Example 1: Download report for a specific SKU
         print("\n=== Example 1: Download report for specific SKU ===")
         sku = os.getenv("SELLERLEGEND_SKU", "YOUR-PRODUCT-SKU")
-        
+
         if sku == "YOUR-PRODUCT-SKU":
             print("Note: Using placeholder SKU. Set SELLERLEGEND_SKU in .env for real data.")
-        
+
         try:
-            print(f"Creating and downloading report for SKU: {sku}")
-            report_data = client.create_and_download_report(
-                product_sku=sku,
-                timeout=300  # Wait up to 5 minutes
+            # Step 1: Create report request for a specific SKU
+            print(f"Creating report request for SKU: {sku}")
+            create_response = client.reports.create_report_request(
+                product_sku=sku
             )
-            
+
+            report_id = create_response["report_id"]
+            print(f"Report request created with ID: {report_id}")
+
+            # Step 2: Wait for report completion
+            print("Waiting for report to complete...")
+            max_wait_time = 300  # 5 minutes timeout
+            poll_interval = 10   # Check every 10 seconds
+            elapsed = 0
+
+            while elapsed < max_wait_time:
+                status_response = client.reports.get_report_status(report_id)
+                status = status_response.get("status", "").lower()
+
+                print(f"  Status: {status} (elapsed: {elapsed}s)")
+
+                if status == "done":
+                    print("Report completed successfully!")
+                    break
+                elif status == "failed":
+                    print("Report generation failed!")
+                    raise Exception("Report generation failed")
+
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+            else:
+                raise Exception(f"Report did not complete within {max_wait_time} seconds")
+
+            # Step 3: Download the completed report
+            print("Downloading completed report...")
+            report_data = client.reports.download_report(report_id)
+
             # Save the gzipped report
             filename = f"report_{sku}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv.gz"
             with open(filename, "wb") as f:
                 f.write(report_data)
-            
+
             print(f"Report saved as: {filename}")
-            
+
             # Extract and preview the CSV content
             with gzip.open(filename, 'rt', encoding='utf-8') as f:
                 lines = f.readlines()[:10]  # First 10 lines
                 print("Preview of report content:")
                 for i, line in enumerate(lines, 1):
                     print(f"  {i}: {line.strip()}")
-                    
+
         except Exception as e:
             print(f"Error downloading report for SKU {sku}: {str(e)}")
         
@@ -138,6 +147,8 @@ def main():
             if status == "done":
                 print("Downloading completed report...")
                 report_data = client.reports.download_report(report_id)
+
+                print(report_data)
                 
                 filename = f"report_date_{report_date}_{datetime.now().strftime('%H%M%S')}.csv.gz"
                 with open(filename, "wb") as f:
