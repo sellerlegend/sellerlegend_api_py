@@ -55,6 +55,7 @@ class SellerLegendClient:
         base_url: str = None,
         redirect_uri: Optional[str] = None,
         access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
         timeout: int = 30,
         max_retries: int = 3,
         backoff_factor: float = 0.3
@@ -92,10 +93,14 @@ class SellerLegendClient:
                 client_secret='',
                 base_url=self.base_url or 'https://api.sellerlegend.com'
             )
-            # Set the access token directly if provided
-            if access_token:
-                self._oauth_client.access_token = access_token
-                self._oauth_client.token_expires_at = None  # No expiry info for external tokens
+
+        # Set the access token directly if provided
+        if access_token:
+            self._oauth_client.access_token = access_token
+            self._oauth_client.token_expires_at = None  # No expiry info for external tokens
+
+        if refresh_token:
+            self._oauth_client.refresh_token = refresh_token
         
         # Initialize base API client
         self._base_client = BaseClient(

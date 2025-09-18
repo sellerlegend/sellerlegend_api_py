@@ -36,7 +36,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 <html>
                 <head><title>Authentication Successful</title></head>
                 <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-                    <h1 style="color: green;">✅ Authentication Successful!</h1>
+                    <h1 style="color: green;">Authentication Successful!</h1>
                     <p>You can now close this window and return to the terminal.</p>
                     <script>setTimeout(function() { window.close(); }, 3000);</script>
                 </body>
@@ -51,7 +51,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 <html>
                 <head><title>Authentication Failed</title></head>
                 <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-                    <h1 style="color: red;">❌ Authentication Failed</h1>
+                    <h1 style="color: red;">Authentication Failed</h1>
                     <p>No authorization code received. Please try again.</p>
                 </body>
                 </html>
@@ -195,7 +195,7 @@ def perform_oauth_flow(config):
 
 def save_config(config):
     """Save configuration to .env file."""
-    env_file = Path(__file__).parent / '.env'
+    env_file = Path.cwd() / '.env'
     
     # Build the .env content
     env_content = []
@@ -244,9 +244,9 @@ def main():
     print("\n" + "="*60)
     print("SellerLegend Python SDK - Test Configuration Setup")
     print("="*60)
-    
+
     # Check if .env already exists
-    env_file = Path(__file__).parent / '.env'
+    env_file = Path.cwd() / '.env'
     if env_file.exists():
         print(f"\n⚠️ Configuration file already exists at {env_file}")
         print("Do you want to overwrite it? (y/n): ", end='')

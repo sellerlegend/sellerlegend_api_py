@@ -21,8 +21,7 @@ from sellerlegend_api import SellerLegendClient, AuthenticationError
 
 def main():
     # Load configuration from .env file
-    env_path = Path(__file__).parent.parent / '.env'
-    load_dotenv(env_path)
+    load_dotenv('.env')
     
     # Get configuration from environment variables
     CLIENT_ID = os.getenv("SELLERLEGEND_CLIENT_ID")

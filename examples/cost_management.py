@@ -19,8 +19,7 @@ from sellerlegend_api import SellerLegendClient, AuthenticationError
 
 def main():
     # Load configuration from .env file
-    env_path = Path(__file__).parent.parent / '.env'
-    load_dotenv(env_path)
+    load_dotenv('.env')
     
     # Get configuration from environment variables
     CLIENT_ID = os.getenv("SELLERLEGEND_CLIENT_ID")
@@ -50,16 +49,6 @@ def main():
     
     try:
         # Authenticate if we don't have an access token
-        if not ACCESS_TOKEN:
-            print("Authenticating with OAuth2 Client Credentials...")
-            auth_result = client.authenticate_client_credentials()
-            print(f"Authentication successful! Token expires in {auth_result.get('expires_in', 'N/A')} seconds")
-        
-        # Check if authenticated
-        if not client.is_authenticated():
-            print("Error: Not authenticated. Please check your credentials.")
-            return 1
-        
         print("Authentication successful!")
         
         # Get test SKU from environment or use placeholder
