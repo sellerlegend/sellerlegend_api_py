@@ -13,7 +13,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="sellerlegend-api",
-    version="1.0.0",
+    version="1.0.1",
     author="SellerLegend",
     author_email="support@sellerlegend.com",
     description="Official Python SDK for the SellerLegend API",
@@ -38,10 +38,10 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=requirements,
-    keywords="sellerlegend api amazon seller ecommerce analytics",
+    keywords="sellerlegend api amazon seller ecommerce analytics sellercentral sp-api",
     project_urls={
         "Bug Reports": "https://github.com/sellerlegend/python-sdk/issues",
         "Source": "https://github.com/sellerlegend/python-sdk",
-        "Documentation": "https://docs.sellerlegend.com/api",
+        "Documentation": "https://dashboard.sellerlegend.com/api-docs/index.html",
     },
 )

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sellerlegend-api"
-version = "1.0.0"
+version = "1.0.1"
 description = "Official Python SDK for the SellerLegend API"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -49,7 +49,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/sellerlegend/python-sdk"
-Documentation = "https://docs.sellerlegend.com/api"
+Documentation = "https://dashboard.sellerlegend.com/api-docs/index.html"
 Repository = "https://github.com/sellerlegend/python-sdk"
 Issues = "https://github.com/sellerlegend/python-sdk/issues"
 Changelog = "https://github.com/sellerlegend/python-sdk/blob/main/CHANGELOG.md"

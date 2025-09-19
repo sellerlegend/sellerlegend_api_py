@@ -702,7 +702,7 @@ CREATE INDEX idx_expires_at ON oauth_tokens(expires_at);
 
 ## Support
 
-For support, please contact [support@sellerlegend.com](mailto:support@sellerlegend.com) or visit our [documentation](https://docs.sellerlegend.com/api).
+For support, please contact [support@sellerlegend.com](mailto:support@sellerlegend.com) or visit our [documentation](https://docs.sellerlegend.com/api-docs/index.html).
 
 ## License
 
