@@ -37,7 +37,25 @@ class SellerLegendAPIError(Exception):
 
 class AuthenticationError(SellerLegendAPIError):
     """Raised when authentication fails or token is invalid."""
-    pass
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        response_data: Optional[Dict[str, Any]] = None,
+        error_code: Optional[str] = None
+    ):
+        """
+        Initialize the authentication exception.
+
+        Args:
+            message: Error message
+            status_code: HTTP status code if available
+            response_data: Full response data from the API if available
+            error_code: Specific error code (e.g., 'TOKEN_EXPIRED', 'TOKEN_EXPIRED_NO_REFRESH')
+        """
+        super().__init__(message, status_code, response_data)
+        self.error_code = error_code
 
 
 class ValidationError(SellerLegendAPIError):

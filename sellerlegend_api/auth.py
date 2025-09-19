@@ -244,16 +244,29 @@ class OAuth2Client:
     
     def ensure_valid_token(self) -> None:
         """
-        Ensure we have a valid access token, refreshing if necessary.
-        
+        Ensure we have a valid access token.
+
+        This method only checks if the token is valid and throws an error if not.
+        It does NOT automatically refresh the token to allow the application
+        to handle token refresh and storage appropriately.
+
         Raises:
-            AuthenticationError: If no valid token can be obtained
+            AuthenticationError: If token is expired or not available
         """
+        if not self.access_token:
+            raise AuthenticationError("No access token available")
+
         if not self.is_token_valid():
             if self.refresh_token:
-                self.refresh_access_token()
+                raise AuthenticationError(
+                    "Access token expired. Call refresh_access_token() to get a new token",
+                    error_code="TOKEN_EXPIRED"
+                )
             else:
-                raise AuthenticationError("No valid access token and no refresh token available")
+                raise AuthenticationError(
+                    "Access token expired and no refresh token available",
+                    error_code="TOKEN_EXPIRED_NO_REFRESH"
+                )
     
     def get_authorization_header(self) -> Dict[str, str]:
         """
