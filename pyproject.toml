@@ -48,11 +48,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sellerlegend/python-sdk"
+Homepage = "https://github.com/sellerlegend/sellerlegend_api_py"
 Documentation = "https://dashboard.sellerlegend.com/api-docs/index.html"
-Repository = "https://github.com/sellerlegend/python-sdk"
-Issues = "https://github.com/sellerlegend/python-sdk/issues"
-Changelog = "https://github.com/sellerlegend/python-sdk/blob/main/CHANGELOG.md"
+Repository = "https://github.com/sellerlegend/sellerlegend_api_py"
+Issues = "https://github.com/sellerlegend/sellerlegend_api_py/issues"
+Changelog = "https://github.com/sellerlegend/sellerlegend_api_py/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [

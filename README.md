@@ -21,8 +21,8 @@ pip install sellerlegend-api
 Or install from source:
 
 ```bash
-git clone <repository_url>
-cd python-sdk
+git clone git@github.com:sellerlegend/sellerlegend_api_py.git
+cd sellerlegend_api_py
 pip install -e .
 ```
 

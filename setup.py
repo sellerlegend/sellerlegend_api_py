@@ -19,7 +19,7 @@ setup(
     description="Official Python SDK for the SellerLegend API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sellerlegend/python-sdk",
+    url="https://github.com/sellerlegend/sellerlegend_api_py",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -40,8 +40,8 @@ setup(
     install_requires=requirements,
     keywords="sellerlegend api amazon seller ecommerce analytics sellercentral sp-api",
     project_urls={
-        "Bug Reports": "https://github.com/sellerlegend/python-sdk/issues",
-        "Source": "https://github.com/sellerlegend/python-sdk",
+        "Bug Reports": "https://github.com/sellerlegend/sellerlegend_api_py/issues",
+        "Source": "https://github.com/sellerlegend/sellerlegend_api_py",
         "Documentation": "https://dashboard.sellerlegend.com/api-docs/index.html",
     },
 )

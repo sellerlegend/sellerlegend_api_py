@@ -54,4 +54,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-For more information about changes, see the [commit history](https://github.com/sellerlegend/python-sdk/commits/main).
+For more information about changes, see the [commit history](https://github.com/sellerlegend/sellerlegend_api_py/commits/main).
