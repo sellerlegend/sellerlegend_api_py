@@ -13,7 +13,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="sellerlegend-api",
-    version="1.0.1",
+    version="1.0.2",
     author="SellerLegend",
     author_email="support@sellerlegend.com",
     description="Official Python SDK for the SellerLegend API",
